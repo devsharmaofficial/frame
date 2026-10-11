@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Bot, Shield, ShieldCheck, CreditCard, Clock, Receipt,
   ScrollText, Plug, Settings, LogOut, ChevronRight, Wallet, Code2, Webhook, FlaskConical
 } from 'lucide-react';
+import { FrameIcon } from '@/components/frame-logo';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
@@ -41,30 +42,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-2 h-2 rounded-full pulse-dot" style={{ background: 'var(--accent)' }} />
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        <div className="w-3 h-3 rounded-full pulse-dot" style={{ background: 'var(--accent)' }} />
       </div>
     );
   }
   if (!user) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* Sidebar */}
-      <aside className="w-56 flex flex-col flex-shrink-0 border-r" style={{
+      <aside className="w-60 flex flex-col flex-shrink-0 border-r border-border bg-secondary" style={{
         background: 'var(--bg-secondary)',
         borderColor: 'var(--border)',
+        color: 'var(--text-primary)',
       }}>
         {/* Logo */}
         <div className="px-4 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-              <Wallet size={14} color="white" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <FrameIcon size={26} />
             <span className="font-semibold text-sm">Frame</span>
             <span className="ml-auto text-xs rounded-full px-2 py-0.5" style={{
               background: 'var(--accent-glow)', color: 'var(--accent)',
-              border: '1px solid rgba(99,102,241,0.2)',
+              border: '1px solid rgba(0, 82, 255, 0.25)',
             }}>
               {organization?.frame_env}
             </span>
@@ -110,7 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto" style={{ background: 'var(--bg-primary)' }}>
+      <main className="flex-1 overflow-y-auto bg-background text-foreground" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
         {children}
       </main>
     </div>

@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
+import { FrameLogo } from '@/components/frame-logo';
 
 export default function LoginPage() {
   const [tab, setTab] = useState<'login' | 'register'>('login');
@@ -35,23 +36,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       {/* Background gradient */}
       <div className="fixed inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.08) 0%, transparent 100%)'
+        background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 82, 255, 0.1) 0%, transparent 100%)'
       }} />
 
       <div className="w-full max-w-md animate-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M2 4h12M2 8h8M2 12h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <span className="text-xl font-semibold">Frame</span>
-          </div>
+          <Link href="/" className="inline-flex flex-col items-center gap-2 mb-3 no-underline">
+            <FrameLogo size={36} textClassName="text-2xl font-semibold text-white tracking-tight" />
+          </Link>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             AI Agent Payment Infrastructure
           </p>

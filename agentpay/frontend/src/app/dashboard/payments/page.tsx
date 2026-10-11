@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { intentsApi, PaymentIntent } from '@/lib/api';
 import { formatRupees, getStatusBadge, timeAgo } from '@/lib/utils';
 
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
+
 export default function PaymentsPage() {
   const [intents, setIntents] = useState<PaymentIntent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +40,7 @@ export default function PaymentsPage() {
             style={{
               background: statusFilter === s ? 'var(--accent-glow)' : 'var(--bg-card)',
               color: statusFilter === s ? 'var(--accent)' : 'var(--text-secondary)',
-              border: `1px solid ${statusFilter === s ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
+              border: `1px solid ${statusFilter === s ? 'rgba(0, 82, 255, 0.4)' : 'var(--border)'}`,
             }}>
             {s || 'All'}
           </button>
@@ -55,23 +58,26 @@ export default function PaymentsPage() {
               <th>Status</th>
               <th>Decision</th>
               <th>Time</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               [...Array(5)].map((_, i) => (
-                <tr key={i}><td colSpan={7}><div className="h-4 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} /></td></tr>
+                <tr key={i}><td colSpan={8}><div className="h-4 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} /></td></tr>
               ))
             ) : intents.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+              <tr><td colSpan={8} className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
                 No payment intents{statusFilter ? ` with status ${statusFilter}` : ''}
               </td></tr>
             ) : intents.map(pi => (
-              <tr key={pi.id}>
+              <tr key={pi.id} className="hover:bg-zinc-800/20 transition cursor-pointer">
                 <td>
-                  <code className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-                    {pi.id.slice(0, 12)}...
-                  </code>
+                  <Link href={`/dashboard/payments/${pi.id}`} className="hover:underline">
+                    <code className="text-xs font-mono" style={{ color: 'var(--accent)' }}>
+                      {pi.id.slice(0, 12)}...
+                    </code>
+                  </Link>
                 </td>
                 <td style={{ color: 'var(--text-secondary)' }}>{pi.agent_name || '—'}</td>
                 <td className="font-medium">{pi.merchant}</td>
@@ -83,6 +89,15 @@ export default function PaymentsPage() {
                   ) : '—'}
                 </td>
                 <td style={{ color: 'var(--text-muted)' }}>{timeAgo(pi.created_at)}</td>
+                <td className="text-right">
+                  <Link
+                    href={`/dashboard/payments/${pi.id}`}
+                    className="inline-flex items-center gap-1 text-xs hover:underline font-medium"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    View <ChevronRight size={13} />
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -62,3 +62,6 @@ Thumbs.db
 # Test Coverage
 coverage/
 .nyc_output/
+
+# Duplicate/numbered download documentation copies
+*(*).md

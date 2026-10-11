@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { agentsApi, policiesApi, intentsApi, Agent, Policy, PaymentIntent, Credential } from '@/lib/api';
+import Link from 'next/link';
+import { agentsApi, policiesApi, intentsApi, authoritiesApi, Agent, Policy, PaymentIntent, Credential, PaymentAuthority } from '@/lib/api';
 import { formatRupees, getStatusBadge, timeAgo, formatDate } from '@/lib/utils';
-import { Key, Power, PowerOff, Plus, Copy, Check, Eye, EyeOff } from 'lucide-react';
+import { Key, Power, PowerOff, Plus, Copy, Check, Eye, EyeOff, ShieldCheck, ChevronRight } from 'lucide-react';
 
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [policy, setPolicy] = useState<Policy | null>(null);
+  const [authorities, setAuthorities] = useState<PaymentAuthority[]>([]);
   const [intents, setIntents] = useState<PaymentIntent[]>([]);
   const [creds, setCreds] = useState<Credential[]>([]);
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -17,16 +19,18 @@ export default function AgentDetailPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [agentRes, credsRes, intentsRes, policiesRes] = await Promise.all([
+    const [agentRes, credsRes, intentsRes, policiesRes, authRes] = await Promise.all([
       agentsApi.get(id),
       agentsApi.listCredentials(id),
       intentsApi.list({ agent_id: id, per_page: 10 }),
       policiesApi.list(id),
+      authoritiesApi.list({ agent_id: id }).catch(() => ({ data: [] as PaymentAuthority[] })),
     ]);
     setAgent(agentRes.data);
     setCreds(credsRes.data);
     setIntents(intentsRes.data);
     setPolicy(policiesRes.data[0] || null);
+    setAuthorities(authRes.data || []);
     setLoading(false);
   };
 
@@ -130,7 +134,7 @@ export default function AgentDetailPage() {
         </div>
       </div>
 
-      {/* Policy */}
+        {/* Policy */}
       <div className="card p-5">
         <h2 className="text-sm font-semibold mb-3">Active Policy</h2>
         {policy ? (
@@ -171,6 +175,64 @@ export default function AgentDetailPage() {
         )}
       </div>
 
+      {/* Payment Authorities */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={16} style={{ color: 'var(--accent)' }} />
+            <h2 className="text-sm font-semibold">Payment Authorities ({authorities.length})</h2>
+          </div>
+          <Link href="/dashboard/payment-authorities" className="text-xs hover:underline flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+            Manage Authorities <ChevronRight size={12} />
+          </Link>
+        </div>
+
+        {authorities.length === 0 ? (
+          <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
+            No payment authorities assigned to this agent yet.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {authorities.map(auth => (
+              <div key={auth.id} className="p-3.5 rounded-lg border text-xs space-y-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-medium">{auth.id.slice(0, 14)}...</span>
+                    <span className="badge badge-neutral text-[10px] uppercase">{auth.provider || 'razorpay'} / {auth.rail || 'upi'}</span>
+                  </div>
+                  <span className={`badge ${getStatusBadge(auth.status)}`}>{auth.status}</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                  <div>
+                    <span className="text-[10px] font-sans block" style={{ color: 'var(--text-muted)' }}>Per Tx Limit</span>
+                    <span>{formatRupees(auth.max_transaction_amount_paise)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-sans block" style={{ color: 'var(--text-muted)' }}>Daily Cap</span>
+                    <span>{formatRupees(auth.daily_limit_paise)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-sans block" style={{ color: 'var(--text-muted)' }}>Daily Left</span>
+                    <span style={{ color: 'var(--success)' }}>{formatRupees(auth.remaining_today_paise)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-sans block" style={{ color: 'var(--text-muted)' }}>Approval Over</span>
+                    <span>{auth.requires_approval_above_paise ? formatRupees(auth.requires_approval_above_paise) : 'None'}</span>
+                  </div>
+                </div>
+
+                {auth.purpose && (
+                  <p className="text-[11px] italic" style={{ color: 'var(--text-secondary)' }}>
+                    &ldquo;{auth.purpose}&rdquo;
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Credentials */}
       <div className="card p-5">
         <h2 className="text-sm font-semibold mb-3">API Credentials</h2>
@@ -200,17 +262,26 @@ export default function AgentDetailPage() {
           <h2 className="text-sm font-semibold">Recent Payment Intents</h2>
         </div>
         <table className="data-table">
-          <thead><tr><th>Merchant</th><th>Amount</th><th>Status</th><th>Decision</th><th>Time</th></tr></thead>
+          <thead><tr><th>Merchant</th><th>Amount</th><th>Status</th><th>Decision</th><th>Time</th><th></th></tr></thead>
           <tbody>
             {intents.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-6" style={{ color: 'var(--text-muted)' }}>No payment intents yet</td></tr>
+              <tr><td colSpan={6} className="text-center py-6" style={{ color: 'var(--text-muted)' }}>No payment intents yet</td></tr>
             ) : intents.map(pi => (
-              <tr key={pi.id}>
-                <td className="font-medium">{pi.merchant}</td>
+              <tr key={pi.id} className="hover:bg-zinc-800/20 transition">
+                <td className="font-medium">
+                  <Link href={`/dashboard/payments/${pi.id}`} className="hover:underline" style={{ color: 'var(--text-primary)' }}>
+                    {pi.merchant}
+                  </Link>
+                </td>
                 <td className="font-mono text-sm">{formatRupees(pi.amount_paise)}</td>
                 <td><span className={`badge ${getStatusBadge(pi.status)}`}>{pi.status}</span></td>
                 <td><span className={`badge ${getStatusBadge(pi.decision || '')}`}>{pi.decision || '—'}</span></td>
                 <td style={{ color: 'var(--text-muted)' }}>{timeAgo(pi.created_at)}</td>
+                <td className="text-right">
+                  <Link href={`/dashboard/payments/${pi.id}`} className="text-xs hover:underline inline-flex items-center gap-0.5" style={{ color: 'var(--accent)' }}>
+                    View <ChevronRight size={12} />
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
