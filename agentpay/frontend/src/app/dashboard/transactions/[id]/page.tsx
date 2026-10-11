@@ -7,7 +7,7 @@ import { txApi } from '@/lib/api';
 import { formatPaise, formatDate } from '@/lib/utils';
 import {
   ArrowLeft, Receipt, CheckCircle, Clock, AlertTriangle, RotateCcw,
-  ShieldCheck, Hash, ExternalLink, RefreshCw, Layers, Download
+  ShieldCheck, ExternalLink, RefreshCw, Download
 } from 'lucide-react';
 
 interface LedgerEntry {
@@ -147,19 +147,20 @@ export default function TransactionDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-5xl mx-auto space-y-6">
-        <div className="text-sm text-muted-foreground">Loading transaction details...</div>
+      <div className="space-y-6 animate-pulse">
+        <div className="h-4 w-32 bg-[#252a3d] rounded-full" />
+        <div className="h-64 rounded-2xl bg-[#141724] border border-[#252a3d]" />
       </div>
     );
   }
 
   if (error || !tx) {
     return (
-      <div className="p-8 max-w-5xl mx-auto space-y-6">
-        <Link href="/dashboard/transactions" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+      <div className="space-y-6">
+        <Link href="/dashboard/transactions" className="inline-flex items-center gap-1.5 text-xs text-[#9ca3b8] hover:text-white transition">
           <ArrowLeft size={14} /> Back to Transactions
         </Link>
-        <div className="p-6 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 text-sm">
+        <div className="rounded-2xl border border-[#cf202f]/30 bg-[#141724] p-8 text-center text-sm text-[#cf202f]">
           {error || 'Transaction not found'}
         </div>
       </div>
@@ -167,51 +168,48 @@ export default function TransactionDetailPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
+    <div className="space-y-8 animate-in">
       {/* Top Header */}
       <div>
         <Link
           href="/dashboard/transactions"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-4"
+          className="inline-flex items-center gap-1.5 text-xs text-[#9ca3b8] hover:text-white transition mb-3"
         >
-          <ArrowLeft size={14} />
-          <span>Back to Transactions</span>
+          <ArrowLeft size={14} /> Back to Transactions
         </Link>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-              <Receipt size={20} className="text-white" />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-normal tracking-tight text-[#f4f5f8]">
+                Transaction {tx.merchant ? `— ${tx.merchant}` : ''}
+              </h1>
+              <span className={`rounded-full px-3 py-0.5 text-xs font-mono font-medium uppercase ${
+                isAlreadyRefunded
+                  ? 'border border-purple-500/30 text-purple-400'
+                  : ['succeeded', 'SUCCEEDED'].includes(tx.status || tx.payment_status || '')
+                  ? 'border border-[#05b169]/30 text-[#05b169]'
+                  : 'border border-[#252a3d] text-[#9ca3b8]'
+              }`}>
+                {isAlreadyRefunded ? 'REFUNDED' : tx.status || tx.payment_status}
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight">
-                  Transaction {tx.merchant ? `— ${tx.merchant}` : ''}
-                </h1>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase ${
-                  isAlreadyRefunded
-                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                    : ['succeeded', 'SUCCEEDED'].includes(tx.status || tx.payment_status || '')
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
-                }`}>
-                  {isAlreadyRefunded ? 'REFUNDED' : tx.status || tx.payment_status}
-                </span>
-              </div>
-              <p className="text-xs font-mono text-muted-foreground mt-0.5">ID: {tx.id || tx.payment_id}</p>
-            </div>
+            <p className="text-xs font-mono text-[#5b616e] mt-1.5">
+              ID: {tx.id || tx.payment_id}
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={loadTransaction}
-              className="p-2 rounded-lg border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition"
+              className="inline-flex items-center gap-2 rounded-full border border-[#252a3d] bg-[#141724] hover:bg-[#1a1f33] px-4 py-2 text-sm text-[#9ca3b8] hover:text-white transition"
               title="Refresh"
             >
               <RefreshCw size={14} />
+              <span>Refresh</span>
             </button>
             <button
               onClick={exportEvidenceReceipt}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-secondary/50 hover:bg-secondary text-foreground text-xs font-medium transition"
+              className="inline-flex items-center gap-2 rounded-full bg-[#0052ff] hover:bg-[#003ecc] px-5 py-2 text-sm font-semibold text-white transition"
               title="Download Signed Evidence Receipt"
             >
               <Download size={14} />
@@ -220,9 +218,9 @@ export default function TransactionDetailPage() {
             {isRefundable && (
               <button
                 onClick={() => setShowRefundModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 text-sm font-medium transition"
+                className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 px-4 py-2 text-sm font-medium transition"
               >
-                <RotateCcw size={15} />
+                <RotateCcw size={14} />
                 <span>Refund Payment</span>
               </button>
             )}
@@ -231,111 +229,111 @@ export default function TransactionDetailPage() {
       </div>
 
       {refundSuccessMessage && (
-        <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-emerald-400 text-xs flex items-center gap-2">
+        <div className="rounded-2xl border border-[#05b169]/30 bg-[#05b169]/5 p-4 text-[#05b169] text-xs flex items-center gap-2">
           <CheckCircle size={16} />
           <span>{refundSuccessMessage}</span>
         </div>
       )}
 
       {/* Main Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Financial & Execution Parameters */}
-        <div className="md:col-span-2 space-y-6">
-          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left 7 Cols: Financial & Execution Parameters */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Payment Details</h2>
+              <h2 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">Payment Details</h2>
               <Link
                 href={`/dashboard/payments/${tx.payment_intent_id || tx.payment_id || tx.id}`}
-                className="text-xs hover:underline inline-flex items-center gap-1 text-indigo-400 font-medium"
+                className="text-xs hover:underline inline-flex items-center gap-1 text-[#0052ff]"
               >
-                View Originating Intent & Policy Decision <ExternalLink size={12} />
+                View Originating Intent & Decision <ExternalLink size={12} />
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-muted-foreground block mb-1">Amount</span>
-                <span className="text-base font-bold text-foreground">{formatPaise(tx.amount_paise || 0)}</span>
+                <span className="text-[#5b616e] block mb-1">Amount</span>
+                <span className="text-xl font-normal font-mono text-[#f4f5f8]">{formatPaise(tx.amount_paise || 0)}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Currency</span>
-                <span className="font-semibold text-foreground">{tx.currency || 'INR'}</span>
+                <span className="text-[#5b616e] block mb-1">Currency</span>
+                <span className="text-sm font-medium text-[#f4f5f8]">{tx.currency || 'INR'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Payee / Merchant</span>
-                <span className="font-semibold text-foreground">{tx.merchant || '—'}</span>
+                <span className="text-[#5b616e] block mb-1">Payee / Merchant</span>
+                <span className="text-sm font-medium text-[#f4f5f8]">{tx.merchant || '—'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Initiating Agent</span>
-                <span className="font-semibold text-indigo-400">{tx.agent_name || 'Agent'}</span>
+                <span className="text-[#5b616e] block mb-1">Initiating Agent</span>
+                <span className="text-sm font-medium text-[#0052ff]">{tx.agent_name || 'Agent'}</span>
               </div>
               <div className="col-span-2">
-                <span className="text-muted-foreground block mb-1">Purpose</span>
-                <span className="text-foreground">{tx.purpose || '—'}</span>
+                <span className="text-[#5b616e] block mb-1">Declared Purpose</span>
+                <span className="text-sm text-[#f4f5f8]">{tx.purpose || '—'}</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Provider & Settlement Rail</h2>
+          <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
+            <h2 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">Provider & Settlement Rail</h2>
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-muted-foreground block mb-1">Payment Provider</span>
-                <span className="font-semibold text-foreground uppercase">{tx.provider || 'razorpay'}</span>
+                <span className="text-[#5b616e] block mb-1">Payment Provider</span>
+                <span className="font-mono text-sm text-[#f4f5f8] uppercase">{tx.provider || 'razorpay'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Payment Rail</span>
-                <span className="font-semibold text-foreground uppercase">{tx.rail || 'upi'}</span>
+                <span className="text-[#5b616e] block mb-1">Payment Rail</span>
+                <span className="font-mono text-sm text-[#f4f5f8] uppercase">{tx.rail || 'upi'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Provider Reference ID</span>
-                <span className="font-mono text-muted-foreground">{tx.provider_payment_id || '—'}</span>
+                <span className="text-[#5b616e] block mb-1">Provider Reference ID</span>
+                <span className="font-mono text-xs text-[#9ca3b8]">{tx.provider_payment_id || '—'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Reconciliation Status</span>
-                <span className="font-semibold text-emerald-400 uppercase">{tx.reconciliation_status || 'reconciled'}</span>
+                <span className="text-[#5b616e] block mb-1">Reconciliation Status</span>
+                <span className="font-mono text-xs text-[#05b169] uppercase">{tx.reconciliation_status || 'reconciled'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Created Date</span>
-                <span className="text-muted-foreground">{formatDate(tx.created_at)}</span>
+                <span className="text-[#5b616e] block mb-1">Created Date</span>
+                <span className="font-mono text-xs text-[#9ca3b8]">{formatDate(tx.created_at)}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block mb-1">Settled Date</span>
-                <span className="text-muted-foreground">{tx.settled_at ? formatDate(tx.settled_at) : '—'}</span>
+                <span className="text-[#5b616e] block mb-1">Settled Date</span>
+                <span className="font-mono text-xs text-[#9ca3b8]">{tx.settled_at ? formatDate(tx.settled_at) : '—'}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Col: Ledger & Cryptographic Proof */}
-        <div className="space-y-6">
-          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        {/* Right 5 Cols: Ledger & Cryptographic Proof */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={16} className="text-emerald-400" />
-              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Ledger Proof</h2>
+              <ShieldCheck size={16} className="text-[#05b169]" />
+              <h2 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">Ledger Proof</h2>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-xs text-[#9ca3b8] leading-relaxed">
               Every settled transaction creates an immutable, SHA-256 hash-chained ledger entry guaranteeing financial integrity.
             </p>
 
             <div className="space-y-3 pt-2">
               {(tx.ledger_entries || []).map((le: LedgerEntry) => (
-                <div key={le.id} className="p-3 rounded-lg border border-border bg-secondary/30 space-y-1 text-xs">
+                <div key={le.id} className="p-4 rounded-xl border border-[#252a3d] bg-[#0a0b0e] space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className={`font-bold ${le.entry_type === 'REFUND' ? 'text-purple-400' : 'text-emerald-400'}`}>
+                    <span className={`font-mono font-medium ${le.entry_type === 'REFUND' ? 'text-purple-400' : 'text-[#05b169]'}`}>
                       {le.entry_type}
                     </span>
-                    <span className="font-semibold">{formatPaise(le.amount_paise)}</span>
+                    <span className="font-mono text-[#f4f5f8]">{formatPaise(le.amount_paise)}</span>
                   </div>
-                  <div className="font-mono text-[10px] text-muted-foreground truncate" title={le.entry_hash}>
+                  <div className="font-mono text-[10px] text-[#5b616e] truncate" title={le.entry_hash}>
                     Hash: {le.entry_hash}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-[10px] text-[#5b616e]">
                     Recorded: {formatDate(le.recorded_at)}
                   </div>
                 </div>
               ))}
               {(!tx.ledger_entries || tx.ledger_entries.length === 0) && (
-                <div className="text-xs text-muted-foreground">No ledger entries recorded yet.</div>
+                <div className="text-xs text-[#5b616e]">No ledger entries recorded yet.</div>
               )}
             </div>
           </div>
@@ -344,27 +342,27 @@ export default function TransactionDetailPage() {
 
       {/* ── REFUND MODAL ────────────────────────────── */}
       {showRefundModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-purple-500/30 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="rounded-2xl border border-[#252a3d] bg-[#141724] max-w-md w-full p-6 shadow-2xl space-y-5 animate-in">
             <div className="flex items-center gap-3 text-purple-400">
               <RotateCcw size={20} />
-              <h3 className="font-bold text-base text-foreground">Refund Payment</h3>
+              <h3 className="font-normal text-lg text-[#f4f5f8]">Refund Payment</h3>
             </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              You are issuing a full refund of <strong>{formatPaise(tx.amount_paise)}</strong> to merchant <strong>{tx.merchant}</strong>.
-              This calls the payment provider’s refund API and records a cryptographic reversal entry in the ledger.
+            <p className="text-xs text-[#9ca3b8] leading-relaxed">
+              You are issuing a full refund of <strong className="text-white font-mono">{formatPaise(tx.amount_paise)}</strong> to merchant <strong className="text-white">{tx.merchant}</strong>.
+              This calls the payment provider’s refund API and records an immutable cryptographic reversal in the ledger.
             </p>
 
             <form onSubmit={handleProcessRefund} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1.5">Reason for Refund</label>
+                <label className="block text-xs font-mono uppercase tracking-wider text-[#9ca3b8] mb-1.5">Reason for Refund</label>
                 <input
                   type="text"
                   placeholder="e.g. Order cancelled by user / Duplicate payment"
                   value={refundReason}
                   onChange={(e) => setRefundReason(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-secondary/40 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#252a3d] bg-[#0a0b0e] text-xs text-[#f4f5f8] placeholder-[#5b616e] focus:outline-none focus:border-[#0052ff]"
                 />
               </div>
 
@@ -372,16 +370,16 @@ export default function TransactionDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowRefundModal(false)}
-                  className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-secondary transition"
+                  className="rounded-full border border-[#252a3d] bg-[#16181c] px-4 py-2 text-xs font-medium text-[#9ca3b8] hover:text-white transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={refunding}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white transition disabled:opacity-50"
+                  className="rounded-full bg-[#0052ff] hover:bg-[#003ecc] text-white px-5 py-2 text-xs font-semibold transition disabled:opacity-50"
                 >
-                  {refunding ? 'Processing Refund...' : 'Confirm Full Refund'}
+                  {refunding ? 'Processing Refund…' : 'Confirm Full Refund'}
                 </button>
               </div>
             </form>

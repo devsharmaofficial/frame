@@ -4,11 +4,10 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { intentsApi, auditApi, PaymentIntent, AuditEvent } from '@/lib/api';
-import { formatRupees, getStatusBadge, formatDate, timeAgo } from '@/lib/utils';
+import { formatRupees, formatDate, timeAgo } from '@/lib/utils';
 import {
   ArrowLeft, Shield, ShieldCheck, ShieldAlert, AlertTriangle,
-  CheckCircle, Clock, Download, RefreshCw,
-  ChevronRight
+  CheckCircle, Clock, Download, RefreshCw, ChevronRight, FileText, Lock
 } from 'lucide-react';
 
 interface PaymentIntentFull extends PaymentIntent {
@@ -129,20 +128,20 @@ export default function PaymentIntentDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="h-6 w-32 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
-        <div className="card h-64 animate-pulse" />
+      <div className="space-y-6 animate-pulse">
+        <div className="h-4 w-32 bg-[#252a3d] rounded-full" />
+        <div className="h-64 rounded-2xl bg-[#141724] border border-[#252a3d]" />
       </div>
     );
   }
 
   if (error || !intent) {
     return (
-      <div className="p-6 space-y-6">
-        <Link href="/dashboard/payments" className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <ArrowLeft size={14} /> Back to Payment Intents
+      <div className="space-y-6">
+        <Link href="/dashboard/payments" className="inline-flex items-center gap-1.5 text-xs text-[#9ca3b8] hover:text-white">
+          <ArrowLeft size={14} /> Back to Payments
         </Link>
-        <div className="card p-6 text-center text-sm" style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}>
+        <div className="rounded-2xl border border-[#cf202f]/30 bg-[#141724] p-8 text-center text-sm text-[#cf202f]">
           {error || 'Payment intent not found'}
         </div>
       </div>
@@ -155,13 +154,6 @@ export default function PaymentIntentDetailPage() {
     : typeof intent.reasons === 'string'
     ? [intent.reasons]
     : [];
-
-  const getDecisionBadge = (dec: string) => {
-    if (dec === 'ALLOW') return 'badge badge-success';
-    if (dec === 'REQUIRE_APPROVAL') return 'badge badge-warning';
-    if (dec === 'DENY') return 'badge badge-danger';
-    return 'badge badge-neutral';
-  };
 
   const getWhyExplanation = () => {
     if (intent.denial_reason) return intent.denial_reason;
@@ -177,7 +169,6 @@ export default function PaymentIntentDetailPage() {
     return 'Policy evaluation in progress or completed under standard authority rules.';
   };
 
-  // Build unified operational timeline
   const timelineMilestones = [
     {
       title: 'Intent Created',
@@ -244,90 +235,111 @@ export default function PaymentIntentDetailPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6 animate-in">
-      {/* Top breadcrumb & navigation */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Link
-            href="/dashboard/payments"
-            className="inline-flex items-center gap-1.5 text-xs transition mb-2"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <ArrowLeft size={14} /> Back to Payment Intents
-          </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">Payment Intent Detail</h1>
-            <span className={`badge ${getStatusBadge(intent.status)}`}>{intent.status}</span>
-            <span className={getDecisionBadge(decision)}>
-              Decision: {decision}
-            </span>
+    <div className="space-y-8 animate-in">
+      {/* Top Header & Breadcrumb */}
+      <div>
+        <Link
+          href="/dashboard/payments"
+          className="inline-flex items-center gap-1.5 text-xs text-[#9ca3b8] hover:text-white transition mb-3"
+        >
+          <ArrowLeft size={14} /> Back to Payments
+        </Link>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-normal tracking-tight text-[#f4f5f8]">
+                Payment Intent Detail
+              </h1>
+              <span className={`rounded-full px-3 py-0.5 text-xs font-mono font-medium ${
+                intent.status === 'SUCCEEDED'
+                  ? 'border border-[#05b169]/30 text-[#05b169]'
+                  : intent.status === 'PENDING_APPROVAL'
+                  ? 'border border-amber-500/30 text-amber-400'
+                  : 'border border-[#cf202f]/30 text-[#cf202f]'
+              }`}>
+                {intent.status}
+              </span>
+              <span className={`rounded-full px-3 py-0.5 text-xs font-mono font-medium ${
+                decision === 'ALLOW'
+                  ? 'border border-[#05b169]/30 text-[#05b169]'
+                  : decision === 'REQUIRE_APPROVAL'
+                  ? 'border border-amber-500/30 text-amber-400'
+                  : 'border border-[#cf202f]/30 text-[#cf202f]'
+              }`}>
+                Firewall: {decision}
+              </span>
+            </div>
+            <p className="text-xs font-mono text-[#5b616e] mt-1.5">
+              ID: {intent.id}
+            </p>
           </div>
-          <p className="text-xs font-mono mt-1" style={{ color: 'var(--text-muted)' }}>
-            ID: {intent.id}
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={loadData}
-            className="btn-secondary"
-            title="Refresh Data"
-          >
-            <RefreshCw size={14} /> Refresh
-          </button>
-          <button
-            onClick={exportEvidenceReceipt}
-            disabled={downloadingReceipt}
-            className="btn-primary"
-          >
-            <Download size={14} />
-            <span>Export Evidence Receipt</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadData}
+              className="inline-flex items-center gap-2 rounded-full border border-[#252a3d] bg-[#141724] hover:bg-[#1a1f33] px-4 py-2 text-sm text-[#9ca3b8] hover:text-white transition"
+              title="Refresh Data"
+            >
+              <RefreshCw size={14} />
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={exportEvidenceReceipt}
+              disabled={downloadingReceipt}
+              className="inline-flex items-center gap-2 rounded-full bg-[#0052ff] hover:bg-[#003ecc] px-5 py-2 text-sm font-semibold text-white transition"
+            >
+              <Download size={14} />
+              <span>Export Receipt</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Primary summary cards */}
+      {/* 4-Up Summary Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="stat-card">
-          <span className="stat-label">Amount</span>
-          <div className="stat-value text-xl font-mono">{formatRupees(intent.amount_paise)}</div>
-          <span className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{intent.currency || 'INR'}</span>
+        <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-5">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">Authorized Amount</span>
+          <div className="text-2xl font-normal font-mono text-[#f4f5f8] mt-2">
+            {formatRupees(intent.amount_paise)}
+          </div>
+          <span className="text-xs text-[#5b616e] mt-1 block">{intent.currency || 'INR'}</span>
         </div>
 
-        <div className="stat-card">
-          <span className="stat-label">Merchant / Payee</span>
-          <div className="stat-value text-base font-semibold">{intent.merchant}</div>
-          <span className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{intent.task_reference || 'Online Checkout'}</span>
+        <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-5">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">Merchant Payee</span>
+          <div className="text-base font-medium text-[#f4f5f8] mt-2 truncate">
+            {intent.merchant}
+          </div>
+          <span className="text-xs text-[#5b616e] mt-1 block truncate">{intent.task_reference || 'Online Checkout'}</span>
         </div>
 
-        <div className="stat-card">
-          <span className="stat-label">Initiating Agent</span>
-          <div className="stat-value text-base font-semibold">
+        <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-5">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">Initiating Agent</span>
+          <div className="text-base font-medium text-[#f4f5f8] mt-2">
             <Link
               href={`/dashboard/agents/${intent.agent_id}`}
-              className="inline-flex items-center gap-1 hover:underline"
-              style={{ color: 'var(--accent)' }}
+              className="inline-flex items-center gap-1 hover:text-[#0052ff] transition"
             >
-              {intent.agent_name || 'Agent'}
+              <span>{intent.agent_name || 'Agent'}</span>
               <ChevronRight size={14} />
             </Link>
           </div>
-          <span className="text-xs mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>{intent.agent_id.slice(0, 14)}...</span>
+          <span className="text-xs font-mono text-[#5b616e] mt-1 block truncate">{intent.agent_id.slice(0, 16)}…</span>
         </div>
 
-        <div className="stat-card">
-          <span className="stat-label">Firewall Risk Level</span>
-          <div className="stat-value text-base font-semibold" style={{
-            color: intent.risk_level === 'HIGH' || intent.risk_level === 'CRITICAL' ? 'var(--danger)' : 'var(--success)'
-          }}>
+        <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-5">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">Firewall Risk Profile</span>
+          <div className={`text-base font-medium font-mono mt-2 ${
+            intent.risk_level === 'HIGH' || intent.risk_level === 'CRITICAL' ? 'text-[#cf202f]' : 'text-[#05b169]'
+          }`}>
             {intent.risk_level || 'LOW_RISK'}
           </div>
-          <span className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Created {timeAgo(intent.created_at)}</span>
+          <span className="text-xs text-[#5b616e] mt-1 block">Created {timeAgo(intent.created_at)}</span>
         </div>
       </div>
 
-      {/* Tabs navigation */}
-      <div className="flex items-center gap-2 border-b" style={{ borderColor: 'var(--border)' }}>
+      {/* Pill Segmented Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#252a3d] pb-2">
         {[
           { key: 'overview', label: 'Overview & Decision' },
           { key: 'timeline', label: 'Transaction Timeline' },
@@ -337,11 +349,11 @@ export default function PaymentIntentDetailPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as typeof activeTab)}
-            className="px-4 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors"
-            style={{
-              borderColor: activeTab === tab.key ? 'var(--accent)' : 'transparent',
-              color: activeTab === tab.key ? 'var(--accent)' : 'var(--text-secondary)',
-            }}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+              activeTab === tab.key
+                ? 'bg-[#0052ff] text-white'
+                : 'text-[#9ca3b8] hover:text-white hover:bg-[#141724]'
+            }`}
           >
             {tab.label}
           </button>
@@ -351,40 +363,41 @@ export default function PaymentIntentDetailPage() {
       {/* ── TAB 1: OVERVIEW & DECISION ──────────────────────────────────── */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* Decision & "Why" Card */}
-          <div className="card p-6 space-y-4" style={{
-            borderLeft: `4px solid ${decision === 'ALLOW' ? 'var(--success)' : decision === 'REQUIRE_APPROVAL' ? 'var(--warning)' : 'var(--danger)'}`
-          }}>
+          <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {decision === 'ALLOW' ? (
-                  <ShieldCheck size={20} style={{ color: 'var(--success)' }} />
+                  <ShieldCheck size={20} className="text-[#05b169]" />
                 ) : decision === 'REQUIRE_APPROVAL' ? (
-                  <AlertTriangle size={20} style={{ color: 'var(--warning)' }} />
+                  <AlertTriangle size={20} className="text-amber-400" />
                 ) : (
-                  <ShieldAlert size={20} style={{ color: 'var(--danger)' }} />
+                  <ShieldAlert size={20} className="text-[#cf202f]" />
                 )}
-                <h2 className="text-base font-semibold">Firewall Decision: {decision}</h2>
+                <h2 className="text-base font-medium text-[#f4f5f8]">Firewall Decision: {decision}</h2>
               </div>
-              <span className={`badge ${getStatusBadge(intent.status)}`}>{intent.status}</span>
+              <span className={`rounded-full px-3 py-0.5 text-xs font-mono font-medium ${
+                intent.status === 'SUCCEEDED' ? 'text-[#05b169]' : 'text-[#9ca3b8]'
+              }`}>
+                {intent.status}
+              </span>
             </div>
 
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Why
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8] mb-1.5">
+                Evaluation Rationale
               </h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm leading-relaxed text-[#f4f5f8]">
                 {getWhyExplanation()}
               </p>
             </div>
 
             {reasonsList.length > 0 && (
-              <div className="pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                <h4 className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Evaluated Rules & Reasons:</h4>
+              <div className="pt-3 border-t border-[#252a3d]">
+                <h4 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8] mb-2">Evaluated Rules & Reasons:</h4>
                 <ul className="space-y-1.5 text-xs">
                   {reasonsList.map((reason, idx) => (
-                    <li key={idx} className="flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
-                      <span className="text-xs" style={{ color: 'var(--accent)' }}>•</span>
+                    <li key={idx} className="flex items-start gap-2 text-[#9ca3b8]">
+                      <span className="text-[#0052ff]">•</span>
                       <span>{reason}</span>
                     </li>
                   ))}
@@ -392,19 +405,15 @@ export default function PaymentIntentDetailPage() {
               </div>
             )}
 
-            {/* Approval callout if pending */}
             {intent.status === 'PENDING_APPROVAL' && (
-              <div className="mt-4 p-4 rounded-lg flex items-center justify-between" style={{
-                background: 'var(--warning-bg)',
-                border: '1px solid rgba(245,158,11,0.3)',
-              }}>
+              <div className="mt-4 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--warning)' }}>Awaiting Human Authorization</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>This transaction is paused until approved in the Approvals inbox.</p>
+                  <p className="text-xs font-semibold text-amber-300">Awaiting Human Authorization</p>
+                  <p className="text-xs text-[#9ca3b8]">This transaction is paused until approved in the Approvals inbox.</p>
                 </div>
                 <Link
                   href="/dashboard/approvals"
-                  className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1"
+                  className="rounded-full bg-[#0052ff] hover:bg-[#003ecc] text-white text-xs font-semibold py-1.5 px-4 inline-flex items-center gap-1 transition"
                 >
                   Go to Approvals <ChevronRight size={14} />
                 </Link>
@@ -412,50 +421,49 @@ export default function PaymentIntentDetailPage() {
             )}
           </div>
 
-          {/* User Instruction / Purpose Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="card p-6 space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+            <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">
                 User Instruction & Purpose
               </h2>
               <div className="space-y-3 text-sm">
                 <div>
-                  <span className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Declared Purpose</span>
-                  <p className="p-3 rounded-lg text-xs leading-relaxed" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                  <span className="text-xs text-[#5b616e] block mb-1">Declared Purpose</span>
+                  <p className="p-3 rounded-xl bg-[#0a0b0e] border border-[#252a3d] text-xs leading-relaxed text-[#f4f5f8]">
                     {intent.purpose || 'No purpose declared'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Task Reference</span>
-                  <span className="text-xs font-mono">{intent.task_reference || '—'}</span>
+                  <span className="text-xs text-[#5b616e] block mb-1">Task Reference</span>
+                  <span className="text-xs font-mono text-[#f4f5f8]">{intent.task_reference || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Merchant Reference</span>
-                  <span className="text-xs font-mono">{intent.merchant_reference || '—'}</span>
+                  <span className="text-xs text-[#5b616e] block mb-1">Merchant Reference</span>
+                  <span className="text-xs font-mono text-[#f4f5f8]">{intent.merchant_reference || '—'}</span>
                 </div>
               </div>
             </div>
 
-            <div className="card p-6 space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+            <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
+              <h2 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">
                 Cryptographic Identifiers
               </h2>
               <div className="space-y-3 text-xs font-mono">
                 <div>
-                  <span className="text-xs font-sans block mb-1" style={{ color: 'var(--text-muted)' }}>Intent Hash (SHA-256)</span>
-                  <div className="p-2 rounded truncate text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }} title={intent.intent_hash}>
+                  <span className="text-xs font-sans text-[#5b616e] block mb-1">Intent Hash (SHA-256)</span>
+                  <div className="p-2.5 rounded-xl bg-[#0a0b0e] border border-[#252a3d] truncate text-[#9ca3b8]" title={intent.intent_hash}>
                     {intent.intent_hash || `sha256_${intent.id.slice(0, 16)}...`}
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs font-sans block mb-1" style={{ color: 'var(--text-muted)' }}>Idempotency Key</span>
-                  <div className="p-2 rounded truncate text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                  <span className="text-xs font-sans text-[#5b616e] block mb-1">Idempotency Key</span>
+                  <div className="p-2.5 rounded-xl bg-[#0a0b0e] border border-[#252a3d] truncate text-[#9ca3b8]">
                     {intent.idempotency_key || '—'}
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs font-sans block mb-1" style={{ color: 'var(--text-muted)' }}>Policy Version ID</span>
-                  <div className="p-2 rounded truncate text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                  <span className="text-xs font-sans text-[#5b616e] block mb-1">Policy Version ID</span>
+                  <div className="p-2.5 rounded-xl bg-[#0a0b0e] border border-[#252a3d] truncate text-[#9ca3b8]">
                     {intent.policy_version_id || 'active_v1'}
                   </div>
                 </div>
@@ -467,27 +475,26 @@ export default function PaymentIntentDetailPage() {
 
       {/* ── TAB 2: TRANSACTION TIMELINE ─────────────────────────────────── */}
       {activeTab === 'timeline' && (
-        <div className="card p-6 space-y-6">
+        <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold">Operational Transaction Timeline</h2>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+              <h2 className="text-base font-medium text-[#f4f5f8]">Operational Transaction Timeline</h2>
+              <p className="text-xs text-[#9ca3b8] mt-0.5">
                 Guaranteed operational sequence. No LLM chain-of-thought is logged.
               </p>
             </div>
-            <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-              {timelineMilestones.length} operational checkpoints
+            <span className="text-xs font-mono text-[#5b616e]">
+              {timelineMilestones.length} checkpoints
             </span>
           </div>
 
-          <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border)]">
+          <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#252a3d]">
             {timelineMilestones.map((step, idx) => (
               <div key={idx} className="relative flex items-start gap-4">
                 <div
-                  className="absolute -left-6 top-1 w-5 h-5 rounded-full flex items-center justify-center text-white"
-                  style={{
-                    background: step.status === 'completed' ? 'var(--success)' : step.status === 'failed' ? 'var(--danger)' : 'var(--warning)',
-                  }}
+                  className={`absolute -left-6 top-1 w-5 h-5 rounded-full flex items-center justify-center text-white ${
+                    step.status === 'completed' ? 'bg-[#05b169]' : step.status === 'failed' ? 'bg-[#cf202f]' : 'bg-amber-500'
+                  }`}
                 >
                   {step.status === 'completed' ? (
                     <CheckCircle size={12} />
@@ -500,16 +507,16 @@ export default function PaymentIntentDetailPage() {
 
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold" style={{
-                      color: step.status === 'failed' ? 'var(--danger)' : 'var(--text-primary)'
-                    }}>
+                    <h3 className={`text-sm font-medium ${
+                      step.status === 'failed' ? 'text-[#cf202f]' : 'text-[#f4f5f8]'
+                    }`}>
                       {step.title}
                     </h3>
-                    <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-xs font-mono text-[#5b616e]">
                       {formatDate(step.time)}
                     </span>
                   </div>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  <p className="text-xs mt-1 text-[#9ca3b8]">
                     {step.desc}
                   </p>
                 </div>
@@ -518,18 +525,18 @@ export default function PaymentIntentDetailPage() {
           </div>
 
           {auditEvents.length > 0 && (
-            <div className="pt-4 border-t space-y-3" style={{ borderColor: 'var(--border)' }}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+            <div className="pt-4 border-t border-[#252a3d] space-y-3">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">
                 Associated Audit Log Stream ({auditEvents.length} Events)
               </h3>
               <div className="space-y-2">
                 {auditEvents.map(ev => (
-                  <div key={ev.id} className="p-3 rounded-lg text-xs flex items-center justify-between" style={{ background: 'var(--bg-secondary)' }}>
+                  <div key={ev.id} className="p-3 rounded-xl border border-[#252a3d] bg-[#0a0b0e] text-xs flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[11px]" style={{ color: 'var(--accent)' }}>{ev.action}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>by {ev.actor_type}</span>
+                      <span className="font-mono text-xs text-[#0052ff]">{ev.action}</span>
+                      <span className="text-[#5b616e]">by {ev.actor_type}</span>
                     </div>
-                    <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    <span className="font-mono text-[11px] text-[#5b616e]">
                       {formatDate(ev.occurred_at)}
                     </span>
                   </div>
@@ -543,10 +550,10 @@ export default function PaymentIntentDetailPage() {
       {/* ── TAB 3: SECURITY & EVIDENCE ───────────────────────────────────── */}
       {activeTab === 'security' && (
         <div className="space-y-6">
-          <div className="card p-6 space-y-4">
+          <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
             <div>
-              <h2 className="text-base font-semibold">Security Controls & Guardrail Assertions</h2>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+              <h2 className="text-base font-medium text-[#f4f5f8]">Security Controls & Guardrail Assertions</h2>
+              <p className="text-xs text-[#9ca3b8] mt-0.5">
                 Automated security verification performed by the Frame policy firewall prior to authorization.
               </p>
             </div>
@@ -557,23 +564,22 @@ export default function PaymentIntentDetailPage() {
                 { title: 'Payment Authority Active', desc: 'Valid active mandate assigned to this agent', passed: true },
                 { title: 'Merchant Allowed', desc: `Merchant '${intent.merchant}' approved under policy rules`, passed: decision !== 'DENY' },
                 { title: 'Category Approved', desc: 'Product category matched allowable scope', passed: decision !== 'DENY' },
-                { title: 'Budget Within Limit', desc: `Amount ${formatRupees(intent.amount_paise)} within per-tx & daily caps`, passed: decision === 'ALLOW' },
+                { title: 'Budget Within Limit', desc: `Amount ${formatRupees(intent.amount_paise)} within caps`, passed: decision === 'ALLOW' },
                 { title: 'Checkout Unchanged', desc: 'Item pricing & canonical cart snapshot verified', passed: true },
-                { title: 'Zero Sensitive Credentials Captured', desc: 'No CVVs, passwords, or bank logins handled by agent', passed: true },
-                { title: 'Payment Provider Verified', desc: 'Secure settlement via Razorpay Sandbox / deterministic mock', passed: true },
+                { title: 'Zero Sensitive Credentials Captured', desc: 'No CVVs or bank logins handled by agent', passed: true },
+                { title: 'Payment Provider Verified', desc: 'Secure settlement via Razorpay Sandbox adapter', passed: true },
               ].map((chk, i) => (
-                <div key={i} className="p-3.5 rounded-lg border flex items-start gap-3" style={{
-                  borderColor: chk.passed ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
-                  background: chk.passed ? 'var(--success-bg)' : 'rgba(239,68,68,0.05)',
-                }}>
-                  <div className="mt-0.5" style={{ color: chk.passed ? 'var(--success)' : 'var(--danger)' }}>
+                <div key={i} className={`p-4 rounded-xl border flex items-start gap-3 ${
+                  chk.passed ? 'border-[#05b169]/20 bg-[#05b169]/5' : 'border-[#cf202f]/20 bg-[#cf202f]/5'
+                }`}>
+                  <div className={`mt-0.5 ${chk.passed ? 'text-[#05b169]' : 'text-[#cf202f]'}`}>
                     {chk.passed ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold" style={{ color: chk.passed ? 'var(--text-primary)' : 'var(--danger)' }}>
+                    <h4 className={`text-xs font-medium ${chk.passed ? 'text-[#f4f5f8]' : 'text-[#cf202f]'}`}>
                       {chk.title}
                     </h4>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs mt-0.5 text-[#9ca3b8]">
                       {chk.desc}
                     </p>
                   </div>
@@ -582,27 +588,27 @@ export default function PaymentIntentDetailPage() {
             </div>
           </div>
 
-          <div className="card p-6 space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+          <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
+            <h2 className="text-xs font-mono uppercase tracking-wider text-[#9ca3b8]">
               Evidence Graph & Settlement Verification
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div className="p-3 rounded-lg border" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
-                <span className="text-muted block mb-1">Intent Binding</span>
-                <span className="font-semibold" style={{ color: 'var(--success)' }}>Cryptographically Bound</span>
-                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>SHA-256 canonical hash over amount, currency, merchant, item payload.</p>
+              <div className="p-4 rounded-xl border border-[#252a3d] bg-[#0a0b0e]">
+                <span className="text-[#5b616e] block mb-1">Intent Binding</span>
+                <span className="font-medium text-[#05b169]">Cryptographically Bound</span>
+                <p className="text-[11px] mt-1 text-[#9ca3b8]">SHA-256 canonical hash over amount, currency, merchant payload.</p>
               </div>
 
-              <div className="p-3 rounded-lg border" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
-                <span className="text-muted block mb-1">Double-Entry Ledger</span>
-                <span className="font-semibold" style={{ color: 'var(--success)' }}>Immutable Chained</span>
-                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Append-only ledger guaranteeing exact settlement reconciliation.</p>
+              <div className="p-4 rounded-xl border border-[#252a3d] bg-[#0a0b0e]">
+                <span className="text-[#5b616e] block mb-1">Double-Entry Ledger</span>
+                <span className="font-medium text-[#05b169]">Immutable Chained</span>
+                <p className="text-[11px] mt-1 text-[#9ca3b8]">Append-only ledger guaranteeing exact settlement reconciliation.</p>
               </div>
 
-              <div className="p-3 rounded-lg border" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
-                <span className="text-muted block mb-1">Agent Self-Approval</span>
-                <span className="font-semibold" style={{ color: 'var(--success)' }}>Zero Self-Approval (Enforced)</span>
-                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Agents cannot approve their own high-value intents.</p>
+              <div className="p-4 rounded-xl border border-[#252a3d] bg-[#0a0b0e]">
+                <span className="text-[#5b616e] block mb-1">Agent Self-Approval</span>
+                <span className="font-medium text-[#05b169]">Zero Self-Approval (Enforced)</span>
+                <p className="text-[11px] mt-1 text-[#9ca3b8]">Agents cannot approve their own high-value intents.</p>
               </div>
             </div>
           </div>
@@ -611,29 +617,25 @@ export default function PaymentIntentDetailPage() {
 
       {/* ── TAB 4: EVIDENCE RECEIPT PREVIEW ──────────────────────────────── */}
       {activeTab === 'receipt' && (
-        <div className="card p-6 space-y-4">
+        <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold">Frame Transaction Evidence Receipt</h2>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                Exportable compliance and audit receipt (per Product Design §19).
+              <h2 className="text-base font-medium text-[#f4f5f8]">Frame Transaction Evidence Receipt</h2>
+              <p className="text-xs text-[#9ca3b8] mt-0.5">
+                Exportable compliance and audit receipt.
               </p>
             </div>
             <button
               onClick={exportEvidenceReceipt}
               disabled={downloadingReceipt}
-              className="btn-primary"
+              className="inline-flex items-center gap-2 rounded-full bg-[#0052ff] hover:bg-[#003ecc] px-4 py-2 text-xs font-semibold text-white transition"
             >
               <Download size={14} />
               <span>Download JSON Receipt</span>
             </button>
           </div>
 
-          <div className="rounded-lg p-4 font-mono text-xs overflow-x-auto" style={{
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)'
-          }}>
+          <div className="rounded-xl border border-[#252a3d] bg-[#0a0b0e] p-5 font-mono text-xs overflow-x-auto text-[#9ca3b8]">
             <pre>
 {JSON.stringify({
   receipt_header: {

@@ -2,97 +2,116 @@
 
 import { useEffect, useState } from 'react';
 import { auditApi, AuditEvent } from '@/lib/api';
-import { formatDate, getStatusBadge } from '@/lib/utils';
-import { ScrollText } from 'lucide-react';
-
-const actionColors: Record<string, string> = {
-  'agent.created': 'badge-success', 'agent.disabled': 'badge-warning', 'agent.enabled': 'badge-success',
-  'payment_intent.created': 'badge-neutral', 'payment_intent.evaluated': 'badge-neutral',
-  'payment.succeeded': 'badge-success', 'payment.failed': 'badge-danger',
-  'approval.approved': 'badge-success', 'approval.rejected': 'badge-danger',
-  'agent.credential_created': 'badge-neutral', 'agent.credential_revoked': 'badge-warning',
-  'policy.created': 'badge-neutral', 'policy.updated': 'badge-neutral',
-  'user.login': 'badge-neutral', 'organization.created': 'badge-success',
-};
+import { formatDate } from '@/lib/utils';
+import { ScrollText, ShieldCheck } from 'lucide-react';
 
 export default function AuditPage() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    auditApi.list({ per_page: 100 } as Parameters<typeof auditApi.list>[0]).then(r => setEvents(r.data)).finally(() => setLoading(false));
-  }, []);
+  const load = () => {
+    setLoading(true);
+    auditApi.list({ per_page: 100 } as Parameters<typeof auditApi.list>[0])
+      .then(r => setEvents(r.data || [])).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
 
   return (
-    <div className="p-6 space-y-6 animate-in">
-      <div>
-        <h1 className="text-2xl font-semibold">Audit Log</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-          Immutable, append-only record of all system actions
-        </p>
+    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-normal tracking-tight text-white">Cryptographic Audit Trail</h1>
+          <p className="text-sm font-normal text-slate-400 mt-1">
+            Immutable, append-only record of all policy decisions, key rotations, and financial events.
+          </p>
+        </div>
+        <button onClick={load} className="h-10 px-5 rounded-full border border-[#252a3d] bg-[#16181c] hover:bg-[#20232b] text-slate-300 hover:text-white text-xs font-medium transition self-start md:self-auto">
+          Refresh Log
+        </button>
       </div>
 
-      <div className="card overflow-hidden">
+      {/* Security Architecture Callout */}
+      <div className="rounded-2xl border border-[#252a3d] bg-[#141724] p-5 flex items-start gap-3.5">
+        <ShieldCheck size={20} className="text-[#0052ff] mt-0.5 flex-shrink-0" />
+        <div className="text-xs space-y-1">
+          <p className="font-medium text-white">Non-Repudiation Architecture</p>
+          <p className="text-slate-400 leading-relaxed">
+            Audit logs are hash-chained and signed at write time. Operator overrides, agent credential creations, and firewall denials cannot be truncated or altered retrospectively.
+          </p>
+        </div>
+      </div>
+
+      {/* Table Card */}
+      <div className="rounded-2xl border border-[#252a3d] bg-[#141724] overflow-hidden shadow-sm">
+        <div className="px-6 py-4 border-b border-[#252a3d] flex items-center justify-between bg-[#10131d]/60">
+          <div className="flex items-center gap-2">
+            <ScrollText size={18} className="text-slate-400" />
+            <span className="font-normal text-sm text-white">Append-Only Event Stream ({events.length})</span>
+          </div>
+          <span className="text-xs font-mono text-slate-500">Hash-Chained</span>
+        </div>
+
         {loading ? (
-          <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>Loading audit events...</div>
+          <div className="p-12 text-center text-sm text-slate-400">Loading audit events...</div>
         ) : events.length === 0 ? (
-          <div className="p-12 text-center">
-            <ScrollText size={40} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="font-medium">No audit events yet</p>
+          <div className="p-12 text-center space-y-3">
+            <ScrollText size={36} className="mx-auto text-slate-600" />
+            <p className="text-sm font-medium text-white">No audit events recorded yet</p>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              System events, approvals, and credential generation will stream here automatically.
+            </p>
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Action</th>
-                <th>Actor</th>
-                <th>Resource</th>
-                <th>Decision</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map(evt => (
-                <tr key={evt.id}>
-                  <td className="text-xs font-mono whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
-                    {formatDate(evt.occurred_at)}
-                  </td>
-                  <td>
-                    <span className={`badge ${actionColors[evt.action] || 'badge-neutral'}`}>
-                      {evt.action}
-                    </span>
-                  </td>
-                  <td>
-                    <div>
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{evt.actor_type}</p>
-                      {evt.actor_id && (
-                        <code className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-                          {evt.actor_id.slice(0, 10)}...
-                        </code>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    {evt.resource_type && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{evt.resource_type}</p>
-                        {evt.resource_id && (
-                          <code className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-                            {evt.resource_id.slice(0, 10)}...
-                          </code>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    {evt.decision && (
-                      <span className={`badge ${getStatusBadge(evt.decision)}`}>{evt.decision}</span>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[#10131d] text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-[#252a3d]">
+                <tr>
+                  <th className="px-6 py-3.5">Timestamp</th>
+                  <th className="px-6 py-3.5">Action</th>
+                  <th className="px-6 py-3.5">Actor Type</th>
+                  <th className="px-6 py-3.5">Resource ID</th>
+                  <th className="px-6 py-3.5">Decision</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#252a3d]">
+                {events.map(evt => (
+                  <tr key={evt.id} className="hover:bg-[#171b29]/60 transition">
+                    <td className="px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
+                      {formatDate(evt.occurred_at || (evt as unknown as { created_at?: string }).created_at || '')}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-[#1e2233] text-white border border-[#252a3d]">
+                        {evt.action}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs capitalize text-slate-300">
+                      {evt.actor_type || 'system'}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-400">
+                      {evt.resource_id || evt.id.slice(-8)}
+                    </td>
+                    <td className="px-6 py-4">
+                      {evt.decision ? (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium uppercase ${
+                          evt.decision === 'ALLOW'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : evt.decision === 'DENY'
+                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                          {evt.decision}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-500">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
