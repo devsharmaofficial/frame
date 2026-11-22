@@ -1,0 +1,44 @@
+name: frame-ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: frame
+          POSTGRES_PASSWORD: frame_dev_password
+          POSTGRES_DB: frame_api_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pnpm install
+      - run: pnpm --filter @frame/db build
+      - run: pnpm --filter @frame/db typecheck
+      - run: DATABASE_URL=postgres://frame:frame_dev_password@localhost:5432/frame_api_test pnpm --filter @frame/db migrate
+      - run: pnpm --filter @frame/api typecheck
+      - run: DATABASE_URL=postgres://frame:frame_dev_password@localhost:5432/frame_api_test pnpm --filter @frame/api test
+      - run: pnpm --filter @frame/api build
+      - run: pnpm --filter @frame/sdk typecheck
+      - run: pnpm --filter @frame/sdk test
+      - run: pnpm --filter @frame/web typecheck
+      - run: pnpm --filter @frame/web build
+      - run: python3 -m unittest discover -s packages/python-sdk/tests

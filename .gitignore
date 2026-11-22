@@ -63,5 +63,8 @@ Thumbs.db
 coverage/
 .nyc_output/
 
-# Duplicate/numbered download documentation copies
-*(*).md
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

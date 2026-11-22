@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: frame
+      POSTGRES_PASSWORD: frame_dev_password
+      POSTGRES_DB: frame
+    ports:
+      - "5432:5432"
+    volumes:
+      - frame_pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  frame_pg_data:

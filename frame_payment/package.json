@@ -1,0 +1,11 @@
+{
+  "name": "framer",
+  "private": true,
+  "scripts": {
+    "dev": "npm --workspace @framer/api run dev",
+    "build": "npm --workspace @framer/api run build",
+    "test": "npm --workspace @framer/api run test",
+    "start": "npm --workspace @framer/api run start"
+  },
+  "workspaces": ["apps/api"]
+}

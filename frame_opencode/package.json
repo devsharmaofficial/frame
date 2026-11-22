@@ -1,0 +1,20 @@
+{
+  "name": "frame",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frame — payment infrastructure for AI agents",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@frame/api",
+    "dev:web": "npm run dev --workspace=@frame/web",
+    "db:generate": "npm run generate --workspace=@frame/db",
+    "db:migrate": "npm run migrate --workspace=@frame/db",
+    "db:seed": "npm run seed --workspace=@frame/db",
+    "build": "npm run build --workspace=@frame/db && npm run build --workspace=@frame/api && npm run build --workspace=@frame/sdk && npm run build --workspace=@frame/web",
+    "test": "npm run test --workspace=@frame/api",
+    "typecheck": "npm run typecheck --workspace=@frame/api && npm run typecheck --workspace=@frame/web"
+  }
+}

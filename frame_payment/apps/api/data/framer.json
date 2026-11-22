@@ -1,0 +1,16 @@
+{
+  "organizations": [
+    {
+      "id": "org_default",
+      "name": "Acme Labs",
+      "createdAt": "2026-09-10T19:14:06.060Z"
+    }
+  ],
+  "agents": [],
+  "credentials": [],
+  "policies": [],
+  "intents": [],
+  "approvals": [],
+  "audit": [],
+  "idempotency": []
+}
